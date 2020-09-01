@@ -4,8 +4,8 @@ import pycuda.autoinit
 import numpy as np
 import time
 
-from utils import allocate_buffers
-from params import IMAGE_SIZE
+from rt import allocate_buffers
+from common import IMAGE_SIZE, ITERATION, plot
 
 tensorrt_file_name = "edsr.plan"
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
@@ -31,21 +31,20 @@ def do_inference(context, bindings, inputs, outputs, stream):
 
     return [out.host for out in outputs]
 
+it, times = [], []
 
 total_time = 0
-for _ in range(1000):
+for i in range(ITERATION):
     t1 = time.time()
-
     trt_outputs = do_inference(
                         context=context,
                         bindings=bindings,
                         inputs=inputs,
                         outputs=outputs,
                         stream=stream)
-    # trt_outputs = np.array(trt_outputs)
-    # print(trt_outputs.reshape((3, IMAGE_SIZE * 4, IMAGE_SIZE * 4)))
-    # print(trt_outputs)
     t2 = time.time()
     total_time += t2 - t1
-    print("cost time: ", t2 - t1)
-print("total time: {}, avg time: {}".format(total_time, total_time/1000))
+    it.append(i)
+    times.append(t2 - t1)
+
+plot(it, times, 'tensorrt.png', 'TensorRT {} inference avg: {0:.4f}'.format(IMAGE_SIZE, total_time/ITERATION), 'Iteration', 'time', ['tensorrt'])
